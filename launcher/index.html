@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHEBO FC Launcher</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="top"><div class="brand"><span class="mark">S</span><div><b>SHEBO FC</b><small>OFFICIAL GAME LAUNCHER</small></div></div><span class="version" id="launcher-version">LAUNCHER 1.0</span></header>
+    <section class="hero">
+      <div class="eyebrow">WELCOME TO THE PITCH</div>
+      <h1>ТВОЙ ФУТБОЛ.<br><em>ТВОЯ ИГРА.</em></h1>
+      <p>Следи за обновлениями SHEBO FC и выходи на поле в один клик.</p>
+      <div class="status" id="status">Нажми «Проверить обновления», чтобы начать.</div>
+      <div class="progress-wrap"><div class="progress" id="progress"></div></div>
+      <div class="actions"><button class="primary" id="play" disabled>▶ ИГРАТЬ</button><button class="secondary" id="check">ПРОВЕРИТЬ ОБНОВЛЕНИЯ</button></div>
+    </section>
+    <section class="bottom">
+      <div class="card"><small>УСТАНОВЛЕННАЯ ВЕРСИЯ</small><strong id="installed">Не установлена</strong></div>
+      <div class="card"><small>ПОСЛЕДНЯЯ ВЕРСИЯ</small><strong id="latest">Не проверена</strong></div>
+      <div class="card notes"><small>ЧТО НОВОГО</small><p id="notes">Здесь появится описание последнего обновления.</p></div>
+    </section>
+    <footer><span>SHEBO FC ©</span><button id="releases">ИСТОРИЯ ОБНОВЛЕНИЙ ↗</button></footer>
+  </main>
+  <script src="renderer.js"></script>
+</body>
+</html>
