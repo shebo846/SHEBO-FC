@@ -72,7 +72,9 @@ async function installUpdate() {
   }
 }
 
-$("check").addEventListener("click", checkForUpdates);
+// Use only onclick assignments: a permanent click listener here would also run
+// checkForUpdates when the button has been switched to installUpdate.
+$("check").onclick = checkForUpdates;
 $("play").addEventListener("click", async () => {
   try {
     await window.sheboLauncher.playGame();
