@@ -1,0 +1,76 @@
+name: SHEBO FC - автоматическая проверка
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'SHEBO_FC/**'
+      - '.github/workflows/ci-shebo-fc.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'SHEBO_FC/**'
+      - '.github/workflows/ci-shebo-fc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shebo-fc-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Проверка Vite и проекта
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Получить исходный код
+        uses: actions/checkout@v4
+
+      - name: Проверить наличие проекта
+        shell: bash
+        run: |
+          if [ ! -f SHEBO_FC/package.json ]; then
+            echo "::error::В репозитории нет SHEBO_FC/package.json. Сначала добавьте исходники игры в папку SHEBO_FC."
+            exit 1
+          fi
+
+      - name: Установить Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: SHEBO_FC/package-lock.json
+
+      - name: Проверить lock-файл
+        shell: bash
+        working-directory: SHEBO_FC
+        run: |
+          if [ ! -f package-lock.json ]; then
+            echo "::error::Не найден package-lock.json. Добавьте lock-файл, созданный npm install."
+            exit 1
+          fi
+
+      - name: Установить зависимости
+        working-directory: SHEBO_FC
+        run: npm ci
+
+      - name: Проверить сборку Vite
+        working-directory: SHEBO_FC
+        run: npm run build
+
+      - name: Проверить результат сборки
+        shell: bash
+        run: |
+          test -s SHEBO_FC/dist/index.html
+          echo "Vite build artifact exists and is non-empty."
+
+      - name: Сохранить собранную версию
+        uses: actions/upload-artifact@v4
+        with:
+          name: SHEBO-FC-Vite-build
+          path: SHEBO_FC/dist/
+          if-no-files-found: error
+          retention-days: 14
