@@ -1,0 +1,45 @@
+name: Build SHEBO FC Setup
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "installer/**"
+      - ".github/workflows/build-setup.yml"
+    branches: [main]
+
+jobs:
+  build-setup:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download game release
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path game | Out-Null
+          Invoke-WebRequest -Uri "https://github.com/shebo846/SHEBO-FC/releases/download/v4.1.7/SHEBO-FC-Windows.zip" -OutFile "game.zip"
+          if ((Get-Item "game.zip").Length -lt 100000000) { throw "Downloaded game archive is too small." }
+          Expand-Archive -Path "game.zip" -DestinationPath "game" -Force
+          if (-not (Test-Path "game/win-unpacked/resources/app.asar")) { throw "Expected game/win-unpacked/resources/app.asar was not found in release ZIP." }
+          $mainExe = Get-ChildItem "game/win-unpacked" -Filter "*.exe" -File | Where-Object { $_.Name -like "SHEBO FC*" } | Select-Object -First 1
+          if (-not $mainExe) { throw "SHEBO FC main executable was not found." }
+          Write-Host "Found game executable: $($mainExe.Name)"
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build standard Windows installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path installer/output | Out-Null
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installer/SHEBO-FC.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
+
+      - name: Upload setup
+        uses: actions/upload-artifact@v4
+        with:
+          name: SHEBO-FC-Setup-Windows
+          path: installer/output/SHEBO-FC-Setup-4.1.7.exe
+          if-no-files-found: error
