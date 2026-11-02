@@ -21,10 +21,18 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/shebo846/SHEBO-FC/releases/download/v4.1.7/SHEBO-FC-Windows.zip" -OutFile "game.zip"
           if ((Get-Item "game.zip").Length -lt 100000000) { throw "Downloaded game archive is too small." }
           Expand-Archive -Path "game.zip" -DestinationPath "game" -Force
-          if (-not (Test-Path "game/win-unpacked/resources/app.asar")) { throw "Expected game/win-unpacked/resources/app.asar was not found in release ZIP." }
+          $asar = Get-ChildItem "game" -Filter "app.asar" -File -Recurse | Select-Object -First 1
+          if (-not $asar) { throw "The release ZIP does not contain resources/app.asar." }
+          $resourcesDir = $asar.Directory.FullName
+          $gameDir = Split-Path $resourcesDir -Parent
+          Write-Host "Detected game folder: $gameDir"
+          New-Item -ItemType Directory -Force -Path "game/win-unpacked" | Out-Null
+          Copy-Item -Path "$gameDir/*" -Destination "game/win-unpacked" -Recurse -Force
           $mainExe = Get-ChildItem "game/win-unpacked" -Filter "*.exe" -File | Where-Object { $_.Name -like "SHEBO FC*" } | Select-Object -First 1
-          if (-not $mainExe) { throw "SHEBO FC main executable was not found." }
-          Write-Host "Found game executable: $($mainExe.Name)"
+          if (-not $mainExe) { throw "SHEBO FC main executable was not found in detected game folder." }
+          if ($mainExe.Name -ne "SHEBO FC.exe") { Copy-Item $mainExe.FullName "game/win-unpacked/SHEBO FC.exe" -Force }
+          if (-not (Test-Path "game/win-unpacked/resources/app.asar")) { throw "Game normalization failed: resources/app.asar is missing." }
+          Write-Host "Ready to package: SHEBO FC.exe"
 
       - name: Install Inno Setup
         shell: pwsh
