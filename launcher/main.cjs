@@ -96,26 +96,24 @@ ipcMain.handle("install-update", async (_event, downloadUrl, version) => {
     fs.rmSync(TEMP_DIR, { recursive: true, force: true });
     fs.mkdirSync(TEMP_DIR, { recursive: true });
     sendProgress(2, "Подключаемся к GitHub…");
+    const { pipeline } = require("stream/promises");
+    const { Readable } = require("stream");
     const response = await fetch(downloadUrl, { headers: { "User-Agent": "SHEBO-FC-Launcher" } });
     if (!response.ok || !response.body) throw new Error("Не удалось скачать ZIP игры.");
     const total = Number(response.headers.get("content-length") || 0);
-    const reader = response.body.getReader();
-    const output = fs.createWriteStream(tempZip);
+    if (total && total < 1000000) throw new Error("GitHub вернул слишком маленький файл вместо архива игры.");
     let received = 0;
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        received += value.length;
-        if (!output.write(Buffer.from(value))) await new Promise(resolve => output.once("drain", resolve));
+    const progressStream = new (require("stream").Transform)({
+      transform(chunk, _encoding, callback) {
+        received += chunk.length;
         sendProgress(total ? Math.min(80, Math.round(received / total * 80)) : 20, "Скачиваем файлы игры…");
+        callback(null, chunk);
       }
-    } finally {
-      output.end();
-      await new Promise((resolve, reject) => {
-        output.once("close", resolve);
-        output.once("error", reject);
-      });
+    });
+    await pipeline(Readable.fromWeb(response.body), progressStream, fs.createWriteStream(tempZip));
+    const zipStats = fs.statSync(tempZip);
+    if (zipStats.size < 1000000 || (total && zipStats.size !== total)) {
+      throw new Error("Архив игры скачался не полностью. Проверь интернет и повтори установку.");
     }
     sendProgress(84, "Распаковываем игру…");
     await extract(tempZip, { dir: TEMP_DIR });
